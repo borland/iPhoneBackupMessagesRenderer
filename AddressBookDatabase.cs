@@ -4,10 +4,10 @@ namespace iPhoneBackupMessagesRenderer;
 
 public class AddressBookDatabase : IDisposable
 {
-    public readonly SqliteConnection Connection;
+    private readonly SqliteConnection _connection;
     
     // we cache negative results via null here too
-    private readonly Dictionary<string, string?> Cache = new();
+    private readonly Dictionary<string, string?> _cache = new();
 
     public AddressBookDatabase(string addressBookDbFilePath)
     {
@@ -17,13 +17,13 @@ public class AddressBookDatabase : IDisposable
             Mode = SqliteOpenMode.ReadOnly
         }.ToString();
 
-        Connection = new SqliteConnection(connectionString);
-        Connection.Open();
+        _connection = new SqliteConnection(connectionString);
+        _connection.Open();
     }
 
     public void Dispose()
     {
-        Connection.Dispose();
+        _connection.Dispose();
     }
 
     // searchString is probably a phone number
@@ -38,16 +38,16 @@ public class AddressBookDatabase : IDisposable
         // or an Email address
         if (!searchString.StartsWith("+") && !searchString.Contains("@")) return searchString;
         
-        if (Cache.TryGetValue(searchString, out var value)) return value;
+        if (_cache.TryGetValue(searchString, out var value)) return value;
         
         var guessed = GuessNameInternal(searchString);
-        Cache[searchString] = guessed;
+        _cache[searchString] = guessed;
         return guessed;
     }
     
     string? GuessNameInternal(string searchString)
     {
-        var cmd = Connection.CreateCommand();
+        var cmd = _connection.CreateCommand();
         cmd.CommandText = """
                           SELECT c0First, c1Last, c2Middle, c6Organization
                           FROM ABPersonFullTextSearch_content

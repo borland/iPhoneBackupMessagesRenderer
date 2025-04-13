@@ -6,7 +6,6 @@ E.g.
 
 <img src="example_html.png" />
 
-
 # Credit
 
 https://www.richinfante.com/2017/3/16/reverse-engineering-the-ios-backup/ contains a lot of info about the structure and contents of an iPhone backup. I wouldn't have been able to find the database files without it, and it saved me a lot of time not having to work out the tables and relations in the messages database.
@@ -37,10 +36,6 @@ You'll need the .NET SDK (I used .NET 9) and while I used JetBrains rider to bui
 
 # Disclaimers
 
-### Why are the times wrong?
-
-I haven't fixed that yet. I think they're stored in UTC in the database and would need to be converted to local time
-
 ### Why aren't there any tests? you're a professional developer aren't you?
 
 I wrote this in about one hour in the evening, with the help of ChatGPT. Plus another half hour to write this readme, tidy things up, and make it fit for publishing to GitHub. I know how to write tests and am a big advocate for them in my professional life, but I also have a family and limited time. For a one-shot HTML generator like this they aren't worth it.
@@ -58,7 +53,7 @@ Please write me a C# application using .NET 8 and whichever is the best SQLite l
 Include CSS so the messages look like they do on an iPhone
 ```
 
-It wrote me a program in a rough form, which mostly worked but wasn't in the shape that I wanted. It wrote the HTML/CSS. You can try it yourself!
+It wrote me a program in a rough form, which mostly worked but wasn't in the shape that I wanted. You can try it yourself!
 I rearranged the code and then built the rest upon it. I wrote the addressbook stuff myself, it was easier than trying to explain to the LLM at that point.
 
 I find that LLM's are a great way to really quickly bootstrap small utilities like this where the stakes are low. I don't care _at all_ about the HTML/CSS and I only care a tiny bit about the C# code structure. The app is tiny and I doubt I'll ever have to maintain it or explain to anyone else.

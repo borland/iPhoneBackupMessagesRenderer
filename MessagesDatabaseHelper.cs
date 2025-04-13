@@ -5,8 +5,9 @@ namespace iPhoneBackupMessagesRenderer;
 public static class MessagesDatabaseHelper
 {
     public record Chat(int ChatId, string? DisplayName, string Identifier);
+
     public record Message(string Sender, string Text, DateTime Date, bool IsFromMe);
-    
+
     public static List<Chat> GetChats(SqliteConnection conn)
     {
         var chats = new List<Chat>();
@@ -25,6 +26,7 @@ public static class MessagesDatabaseHelper
                 reader.GetString(2)
             ));
         }
+
         return chats;
     }
 
@@ -58,9 +60,10 @@ public static class MessagesDatabaseHelper
 
             messages.Add(new Message(sender, text, date, isFromMe));
         }
+
         return messages;
     }
-    
+
     public static string GetMainHandleForChat(SqliteConnection conn, int chatId)
     {
         var cmd = conn.CreateCommand();
@@ -79,8 +82,8 @@ public static class MessagesDatabaseHelper
     }
 
 
-    private static readonly DateTime BaseDate = new(2001, 1, 1);
-    
+    private static readonly DateTime BaseDate = new(2001, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+
     static DateTime ConvertAppleTimestamp(long timestamp)
     {
         if (timestamp > 100_000_000_000) // Definitely not seconds

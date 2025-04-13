@@ -1,6 +1,4 @@
-﻿using System.Globalization;
-using Microsoft.Data.Sqlite;
-using System.Text;
+﻿using System.Text;
 using iPhoneBackupMessagesRenderer;
 
 string smsDbPath = "..."; // path to your sms.db
@@ -91,12 +89,13 @@ string RenderHtml(Chat chat, List<Message> messages)
     foreach (var message in messages)
     {
         var sender = addressBookDb.GuessName(message.Sender) ?? message.Sender;
+        var timestamp = message.Date.ToLocalTime(); // database seems to store messages in UTC
         // Lang=HTML
         sb.AppendLine(
             $"""
              <div class="message {(message.IsFromMe ? "from-me" : "from-them")}">
                 <div>{System.Net.WebUtility.HtmlEncode(message.Text)}</div>
-                <div class="subtitle">{System.Net.WebUtility.HtmlEncode(sender)} - {message.Date:G}</div>
+                <div class="subtitle">{System.Net.WebUtility.HtmlEncode(sender)} - {timestamp:G}</div>
             </div>
             """);
     }
