@@ -5,20 +5,15 @@ namespace iPhoneBackupMessagesRenderer;
 public class AddressBookDatabase : IDisposable
 {
     private readonly SqliteConnection _connection;
+    private readonly string? _myName;
     
     // we cache negative results via null here too
     private readonly Dictionary<string, string?> _cache = new();
 
-    public AddressBookDatabase(string addressBookDbFilePath)
+    public AddressBookDatabase(string addressBookDbFilePath, string? myName = null)
     {
-        var connectionString = new SqliteConnectionStringBuilder
-        {
-            DataSource = addressBookDbFilePath,
-            Mode = SqliteOpenMode.ReadOnly
-        }.ToString();
-
-        _connection = new SqliteConnection(connectionString);
-        _connection.Open();
+        _myName = myName;
+        _connection = SqliteHelper.OpenDatabaseReadOnly(addressBookDbFilePath);
     }
 
     public void Dispose()
@@ -31,7 +26,7 @@ public class AddressBookDatabase : IDisposable
     {
         // special case things we shouldn't guess
         if (string.IsNullOrWhiteSpace(searchString)) return searchString;
-        if (searchString.Equals("Me", StringComparison.CurrentCultureIgnoreCase)) return searchString;
+        if (searchString.Equals("Me", StringComparison.CurrentCultureIgnoreCase)) return _myName ?? searchString;
         
         // We sometimes get SMS messages from short-codes like 422 which screw up the text search.
         // We only want to guess if it's a qualified phone number (e.g. starts with +64 or similar)
