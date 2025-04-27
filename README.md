@@ -17,32 +17,68 @@ I wrote it for myself with no expectation anyone else will use it, but if you wa
 This might work on a PC, I didn't try it but theoretically the same files will be in the same places.
 
 On my mac, it ended up in a folder under `~/Library/Application Support/MobileSync/Backup`.
-Strong suggestion: Take a **copy** of the folder and work with the copy, lest you break your backup.
 
-### Find the Messages and AddressBook databases
-Within the iPhone backup, you need to find two files
-- `Library/SMS/sms.db` (`3d0d7e5fb2ce288813306e4d4636395e047a3d28`)
-- `Library/AddressBook/AddressBook.sqlitedb` (`31bb7ba8914766d4ba40d6dfb6113c8b614be442` in the backup file structure)
+Take a **copy** of the folder and work with the copy. `Application Support/MobileSync` has restricted permissions 
+and this app may not be able to read data from that directory. Also you don't want to accidentally mess your backu up.
 
-Copy them out to somewhere obvious
+### Download and prepare `avifenc`
 
-### Put the file paths in
+I downloaded it from the [AOMediaCodec/libavif/releases page](https://github.com/AOMediaCodec/libavif/releases).
+Remember to follow the instructions in the readme to `sudo xattr -r -d com.apple.quarantine ./avifenc ./avifdec` otherwise it won't launch.
 
-Edit `Program.cs` and put the paths in `smsDbPath` and `addressBookDbPath`
+### Edit Program.cs to put the file paths in
+
+Set `ImageConverter.AvifEncPath` to the path where you've downloaded and put `avifenc`. For example `"/Users/orion/Dev/avifenc-1.2.1/avifenc"`
+
+Set `myName` to the name of the person's iPhone this is; It will be used for all messages sent by that person. E.g. `"Orion"`
+
+Set `backupBasePath` to the place where you copied the backup to. E.g. `"/Users/orion/Downloads/MobileSyncBackup/00002020-000937B902000059"`
+
+Set `outputDirectory` to the place where you'd like the generated HTML and media files to go. E.g. `$"/Users/orion/Downloads/Phone Message Exports/{myName}"`
 
 ### Compile and Run the program
 
 You'll need the .NET SDK (I used .NET 9) and while I used JetBrains rider to build and execute the program a simple `dotnet run` on the command line should suffice.
 
+## Image Conversion
+
+If you have a lot of images, then converting them all to AVIF can take a long time. Be prepared for this.
+
+**Q: Why convert images?**  
+A: Because HEIC.
+
+On modern iPhones, HEIC is the default image format. Unfortunately [only Safari on Mac/iOS can load HEIC images](https://caniuse.com/heif).
+This utility produces webpages, and webpages full of images that the majority of web browsers can't load, are not very useful.
+
+I wanted to convert them to something, and AVIF is a perfect choice. It [works across all modern browsers](https://caniuse.com/avif) and 
+file sizes are **dramatically** smaller. For example a ~1MB HEIC file in JPEG format might be around 2MB. That same file in
+AVIF will be around 300k. There is some small loss of quality, but we're backing up pictures that people sent and recieved
+on their small mobile phone screens. At least in the testing I did, I couldn't notice a quality difference unless I was 
+really zooming in and nitpicking.
+
+Given how much more efficient AVIF is, I went and converted JPEG and PNG to AVIF as well. It's an amazing codec.
+
+**Q: Why not convert videos?**  
+A: We could likely recompress them into AV1 as well, and see similar dramatic file size reductions, but compressing
+video takes **a lot** longer than images. It could take hours on a backup set with a reasonable number of videos, and
+given that people typically send 50x more photos than videos it just wasn't worth it. 
+
 # Disclaimers
 
 ### Why aren't there any tests? you're a professional developer aren't you?
 
-I wrote this in about one hour in the evening, with the help of ChatGPT. Plus another half hour to write this readme, tidy things up, and make it fit for publishing to GitHub. I know how to write tests and am a big advocate for them in my professional life, but I also have a family and limited time. For a one-shot HTML generator like this they aren't worth it.
+I Initially wrote this in about one hour in the evening, with the help of ChatGPT, which got up to the point where it could 
+extract messages to HTML. Plus another half hour to write this readme, tidy things up, and make it fit for publishing to GitHub. 
+I know how to write tests and am a big advocate for them in my professional life, but I also have a family and limited time. For a one-shot HTML generator like this they aren't worth it.
 
 ### ChatGPT?
 
-I gave it this prompt:
+Note: I used ChatGPT to "get off the ground". It was very helpful in writing the initial HTML/CSS and SQL queries,
+however I only used it for the initial version which didn't support attachments. Thereafter I wrote everything by hand.
+I felt it was faster to simply write the code than to figure out which kind of magic prompt text to prompt the LLM with.
+Attachments are complex, and honestly I'm not sure how I'd even go about prompting the LLM to extract them correctly.
+
+I gave it this initial prompt:
 
 ```
 I have a sqlite database file of imessage chats, according to this

@@ -14,10 +14,15 @@ public static partial class Program
 
     public static void Main()
     {
-        var myName = "Orion";
-        string backupBasePath = @"/Users/orion/Downloads/MobileSyncBackup/GUID_HERE";
-        string outputDirectory = $"/Users/orion/Dev/output_html/{myName}";
+        // ***** Edit these ***** 
+        
+        ImageConverter.AvifEncPath = "<insert path here>";
+        var myName = "Julie";
+        string backupBasePath = "<insert path here>";
+        string outputDirectory = $"<insert path here>/{myName}";
 
+        // ***** Regular sourcecode hereon *****
+        
         var manifestDbPath = Path.Combine(backupBasePath, "Manifest.db");
         using var manifestDb = new ManifestDatabase(manifestDbPath);
 
@@ -63,56 +68,7 @@ public static partial class Program
             var sb = new StringBuilder();
             sb.AppendLine("<!DOCTYPE html>");
             sb.AppendLine("<html><head><meta charset=\"utf-8\" />");
-            sb.AppendLine("<style>");
-            // Lang=css
-            sb.AppendLine(
-                """
-                body {
-                    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-                    background-color: #f2f2f7;
-                    padding: 20px;
-                }
-
-                .message {
-                    max-width: 80%;
-                    padding: 10px 15px;
-                    border-radius: 20px;
-                    margin: 10px;
-                    display: flex;
-                    flex-direction: column;
-                    clear: both;
-                }
-
-                .image-attachment {
-                    width: 50%;
-                    border-radius: 20px;
-                }
-
-                .from-me {
-                    background-color: #0b93f6;
-                    color: white;
-                    align-self: flex-end;
-                    margin-left: auto;
-                }
-
-                .from-them {
-                    background-color: #e5e5ea;
-                    color: black;
-                    align-self: flex-start;
-                    margin-right: auto;
-                }
-
-                .subtitle {
-                    font-size: 0.8em;
-                    opacity: 0.7;
-                    margin-top: 5px;
-                }
-
-                .from-me .subtitle {
-                    text-align: right;
-                }
-                """);
-            sb.AppendLine("</style>");
+            HtmlHelper.WriteCss(sb);
             sb.AppendLine("</head><body>");
 
             sb.AppendLine($"<h2>{chat.DisplayName ?? chat.Identifier}</h2>");
@@ -150,17 +106,35 @@ public static partial class Program
 
                     switch (attachment.MimeType)
                     {
+                        case "video/mp4":
+                        case "video/quicktime":
+                        case "video/3gpp":
+                            Console.WriteLine("Copying {0} to {1}", attachment.MimeType, outputMediaRelativePath);
+                            File.Copy(contentPath, outputMediaAbsolutePath, overwrite: true);
+
+                            sb.AppendLine("<video class=\"image-attachment\" controls>");
+                            
+                            // Even though the mimetype for .MOV movies is typically set to video/quicktime, they don't work in
+                            // browsers other than safari unless we lie and say the type is video/mp4.
+                            // Leave 3gpp alone.
+                            var videoMimeType = attachment.MimeType == "video/quicktime" ? "video/mp4" : attachment.MimeType;
+                            
+                            sb.AppendLine($"  <source src=\"{outputMediaRelativePath}\" type=\"{videoMimeType}\" />");
+                            sb.AppendLine("</video>");
+                            break;
+
                         case "image/jpeg":
+                        case "image/png":
                             try
                             {
                                 var newRelative = ChangeFileExtension(outputMediaRelativePath, ".avif");
                                 var newAbsolute = ChangeFileExtension(outputMediaAbsolutePath, ".avif");
 
-                                Console.WriteLine("Converting JPEG to {0}", newRelative);
-                                ImageConverter.JpegToAvif(contentPath, newAbsolute);
-                                
-                                outputMediaRelativePath = newRelative;
-                                outputMediaAbsolutePath = newAbsolute;
+                                Console.WriteLine("Converting {0} to {1}", attachment.MimeType, newRelative);
+                                ImageConverter.JpegOrPngToAvif(contentPath, newAbsolute);
+
+                                // assume it's an image if we can't tell what else it might have been
+                                sb.AppendLine($"<img class=\"image-attachment\" src=\"{newRelative}\" />");
                                 break;
                             }
                             catch (Exception)
@@ -177,9 +151,9 @@ public static partial class Program
 
                                 Console.WriteLine("Converting JPEG to {0}", newRelative);
                                 ImageConverter.HeicToAvif(contentPath, newAbsolute);
-                                
-                                outputMediaRelativePath = newRelative;
-                                outputMediaAbsolutePath = newAbsolute;
+
+                                // assume it's an image if we can't tell what else it might have been
+                                sb.AppendLine($"<img class=\"image-attachment\" src=\"{newRelative}\" />");
                                 break;
                             }
                             catch (Exception)
@@ -191,10 +165,10 @@ public static partial class Program
                         default:
                             Console.WriteLine("Copying to {0}", outputMediaRelativePath);
                             File.Copy(contentPath, outputMediaAbsolutePath, overwrite: true);
+                            // assume it's an image if we can't tell what else it might have been
+                            sb.AppendLine($"<img class=\"image-attachment\" src=\"{outputMediaRelativePath}\" />");
                             break;
                     }
-
-                    sb.AppendLine($"<img class=\"image-attachment\" src=\"{outputMediaRelativePath}\" />");
                 }
 
                 sb.AppendLine("</div>");

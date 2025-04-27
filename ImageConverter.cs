@@ -5,7 +5,7 @@ namespace iPhoneBackupMessagesRenderer;
 public static class ImageConverter
 {
     // Replace this 
-    public static string AvifEncPath { get; set; } = "/Users/orion/Dev/avifenc-1.2.1/avifenc";
+    public static string? AvifEncPath { get; set; }
     private const int AvifQuality = 50; // 60-80 are typical
 
     public static void HeicToAvif(string inputHeicPath, string outputAvifPath)
@@ -14,7 +14,7 @@ public static class ImageConverter
         try
         {
             HeicToJpeg(inputHeicPath, tmpFile);
-            JpegToAvif(tmpFile, outputAvifPath);
+            JpegOrPngToAvif(tmpFile, outputAvifPath);
         }
         finally
         {
@@ -22,9 +22,9 @@ public static class ImageConverter
         }
     }
     
-    public static void JpegToAvif(string inputJpegPath, string outputAvifPath)
+    public static void JpegOrPngToAvif(string inputJpegPath, string outputAvifPath)
     {
-        var result = new ShellCommand(AvifEncPath)
+        var result = new ShellCommand(AvifEncPath ?? throw new InvalidOperationException("Can't convert Jpeg or PNG to avif, no path to avifenc set"))
             .WithArguments(["-q", AvifQuality.ToString(), inputJpegPath, outputAvifPath])
             .Execute();
         
