@@ -8,7 +8,10 @@ public static partial class Program
     // We don't want to bother generating output for short code numbers, these are typically just "Your item is ready for pickup" and not worthwhile
     [GeneratedRegex("\\b\\d{4,5}\\b")]
     private static partial Regex IsSmsShortCodeRegex();
-    
+
+    [GeneratedRegex("\\.\\w{3,4}$")]
+    private static partial Regex PathExtensionRegex();
+
     public static void Main()
     {
         var myName = "Orion";
@@ -42,12 +45,12 @@ public static partial class Program
             {
                 chatRecipient = mainHandle.Replace("+", "").Replace(" ", "");
             }
-            
-            if(IsSmsShortCodeRegex().IsMatch(chatRecipient)) continue;
+
+            if (IsSmsShortCodeRegex().IsMatch(chatRecipient)) continue;
 
             var messages = chat.GetMessages();
-            if(messages.Count == 0) continue; // empty chat
-            
+            if (messages.Count == 0) continue; // empty chat
+
             WriteOutput(chat, chatRecipient, messages);
         }
 
@@ -56,7 +59,7 @@ public static partial class Program
         void WriteOutput(Chat chat, string chatRecipient, List<Message> messages)
         {
             var safeBaseName = $"chat_{chat.ChatId}_{chatRecipient}";
-            
+
             var sb = new StringBuilder();
             sb.AppendLine("<!DOCTYPE html>");
             sb.AppendLine("<html><head><meta charset=\"utf-8\" />");
@@ -79,7 +82,7 @@ public static partial class Program
                     flex-direction: column;
                     clear: both;
                 }
-                
+
                 .image-attachment {
                     width: 50%;
                     border-radius: 20px;
@@ -114,7 +117,7 @@ public static partial class Program
 
             sb.AppendLine($"<h2>{chat.DisplayName ?? chat.Identifier}</h2>");
 
-            bool createdMediaDirectory = false;
+            bool createdAttachmentsDirectory = false;
 
             foreach (var message in messages)
             {
@@ -130,31 +133,82 @@ public static partial class Program
 
                 foreach (var attachment in message.Attachments)
                 {
-                    if (!createdMediaDirectory)
+                    if (!createdAttachmentsDirectory)
                     {
-                        Directory.CreateDirectory(Path.Combine(outputDirectory, safeBaseName));
-                        createdMediaDirectory = true;
+                        Directory.CreateDirectory(Path.Combine(outputDirectory, "attachments", safeBaseName));
+                        createdAttachmentsDirectory = true;
                     }
-                    
+
                     var fileInfo = manifestDb.GetFileInfoByRelativePath(attachment.FileName);
                     if (fileInfo == null) continue; // can't find the file
-                    
+
                     var contentPath = fileInfo.GetContentPath(backupBasePath);
 
-                    var outputMediaRelativePath = Path.Combine(safeBaseName, $"{attachment.RowId}_{attachment.TransferName}");
+                    var outputMediaRelativePath = Path.Combine("attachments", safeBaseName,
+                        $"{attachment.RowId}_{attachment.TransferName}");
                     var outputMediaAbsolutePath = Path.Combine(outputDirectory, outputMediaRelativePath);
-                    
-                    File.Copy(contentPath, outputMediaAbsolutePath, overwrite: true);
-                    
+
+                    switch (attachment.MimeType)
+                    {
+                        case "image/jpeg":
+                            try
+                            {
+                                var newRelative = ChangeFileExtension(outputMediaRelativePath, ".avif");
+                                var newAbsolute = ChangeFileExtension(outputMediaAbsolutePath, ".avif");
+
+                                Console.WriteLine("Converting JPEG to {0}", newRelative);
+                                ImageConverter.JpegToAvif(contentPath, newAbsolute);
+                                
+                                outputMediaRelativePath = newRelative;
+                                outputMediaAbsolutePath = newAbsolute;
+                                break;
+                            }
+                            catch (Exception)
+                            {
+                                Console.WriteLine("Could not convert to AVIF, falling back to direct copy");
+                                goto default;
+                            }
+
+                        case "image/heic":
+                            try
+                            {
+                                var newRelative = ChangeFileExtension(outputMediaRelativePath, ".avif");
+                                var newAbsolute = ChangeFileExtension(outputMediaAbsolutePath, ".avif");
+
+                                Console.WriteLine("Converting JPEG to {0}", newRelative);
+                                ImageConverter.HeicToAvif(contentPath, newAbsolute);
+                                
+                                outputMediaRelativePath = newRelative;
+                                outputMediaAbsolutePath = newAbsolute;
+                                break;
+                            }
+                            catch (Exception)
+                            {
+                                Console.WriteLine("Could not convert to AVIF, falling back to direct copy");
+                                goto default;
+                            }
+
+                        default:
+                            Console.WriteLine("Copying to {0}", outputMediaRelativePath);
+                            File.Copy(contentPath, outputMediaAbsolutePath, overwrite: true);
+                            break;
+                    }
+
                     sb.AppendLine($"<img class=\"image-attachment\" src=\"{outputMediaRelativePath}\" />");
                 }
-                
+
                 sb.AppendLine("</div>");
             }
 
             sb.AppendLine("</body></html>");
-            
+
             File.WriteAllText(Path.Combine(outputDirectory, $"{safeBaseName}.html"), sb.ToString());
         }
+    }
+
+    static string ChangeFileExtension(string filePath, string newExtension)
+    {
+        if (!newExtension.StartsWith(".")) throw new ArgumentException("newExtension must start with '.'");
+        return PathExtensionRegex().Replace(filePath, newExtension);
     }
 }

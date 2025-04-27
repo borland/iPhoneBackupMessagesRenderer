@@ -9,6 +9,7 @@
 
     <ItemGroup>
       <PackageReference Include="Microsoft.Data.Sqlite" Version="9.0.4" />
+      <PackageReference Include="Octopus.Shellfish" Version="0.2.2426" />
     </ItemGroup>
 
 </Project>
