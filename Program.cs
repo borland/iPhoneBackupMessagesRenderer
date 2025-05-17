@@ -1,5 +1,4 @@
-﻿using System.Text;
-using System.Text.RegularExpressions;
+﻿using iPhoneBackupMessagesRenderer.WhatsApp;
 
 namespace iPhoneBackupMessagesRenderer;
 
@@ -25,6 +24,6 @@ public static class Program
             new AddressBookDatabase(addressBookDbFileInfo.GetContentPath(backupBasePath), myName);
 
         // AppleMessagesExporter.Export(manifestDb, addressBookDb, backupBasePath, Path.Combine(outputDirectory, "Messages"));
-        WhatsAppExporter.Export(manifestDb, addressBookDb, backupBasePath, Path.Combine(outputDirectory, "WhatsApp"));
+        WhatsAppExporter.Export(manifestDb, myName, backupBasePath, Path.Combine(outputDirectory, "WhatsApp"));
     }
 }

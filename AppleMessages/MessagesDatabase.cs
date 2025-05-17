@@ -1,6 +1,6 @@
 using Microsoft.Data.Sqlite;
 
-namespace iPhoneBackupMessagesRenderer;
+namespace iPhoneBackupMessagesRenderer.AppleMessages;
 
 public class Chat(MessagesDatabase database, int chatId, string? displayName, string identifier)
 {
@@ -59,7 +59,7 @@ public class Chat(MessagesDatabase database, int chatId, string? displayName, st
             string text = reader.IsDBNull(1) ? "(no text)" : reader.GetString(1);
             bool isFromMe = reader.GetInt32(2) == 1;
             long rawDate = reader.GetInt64(3);
-            DateTime date = MessagesDatabaseHelper.ConvertAppleTimestamp(rawDate);
+            DateTime date = Util.ConvertAppleTimestamp(rawDate);
             string sender = isFromMe ? "Me" : (reader.IsDBNull(4) ? "Unknown" : reader.GetString(4));
 
             long attachmentRowId = reader.IsDBNull(5) ? 0 : reader.GetInt64(5);

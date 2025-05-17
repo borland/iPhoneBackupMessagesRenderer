@@ -1,9 +1,7 @@
 using System.Text;
 using System.Text.RegularExpressions;
 
-namespace iPhoneBackupMessagesRenderer;
-
-using static Util;
+namespace iPhoneBackupMessagesRenderer.AppleMessages;
 
 // Exports SMS and iMessage messages from the Apple Messages app
 public static partial class AppleMessagesExporter
@@ -51,7 +49,7 @@ public static partial class AppleMessagesExporter
             var sb = new StringBuilder();
             sb.AppendLine("<!DOCTYPE html>");
             sb.AppendLine("<html><head><meta charset=\"utf-8\" />");
-            HtmlHelper.WriteCss(sb);
+            HtmlHelper.WriteAppleMessagesCss(sb);
             sb.AppendLine("</head><body>");
 
             sb.AppendLine($"<h2>{chat.DisplayName ?? chat.Identifier}</h2>");
@@ -115,8 +113,8 @@ public static partial class AppleMessagesExporter
                         case "image/png":
                             try
                             {
-                                var newRelative = ChangeFileExtension(outputMediaRelativePath, ".avif");
-                                var newAbsolute = ChangeFileExtension(outputMediaAbsolutePath, ".avif");
+                                var newRelative = Util.ChangeFileExtension(outputMediaRelativePath, ".avif");
+                                var newAbsolute = Util.ChangeFileExtension(outputMediaAbsolutePath, ".avif");
 
                                 Console.WriteLine("Converting {0} to {1}", attachment.MimeType, newRelative);
                                 ImageConverter.JpegOrPngToAvif(contentPath, newAbsolute);
@@ -134,8 +132,8 @@ public static partial class AppleMessagesExporter
                         case "image/heic":
                             try
                             {
-                                var newRelative = ChangeFileExtension(outputMediaRelativePath, ".avif");
-                                var newAbsolute = ChangeFileExtension(outputMediaAbsolutePath, ".avif");
+                                var newRelative = Util.ChangeFileExtension(outputMediaRelativePath, ".avif");
+                                var newAbsolute = Util.ChangeFileExtension(outputMediaAbsolutePath, ".avif");
 
                                 Console.WriteLine("Converting JPEG to {0}", newRelative);
                                 ImageConverter.HeicToAvif(contentPath, newAbsolute);
