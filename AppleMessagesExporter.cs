@@ -15,7 +15,7 @@ public static partial class AppleMessagesExporter
     public static void Export(ManifestDatabase manifestDb, AddressBookDatabase addressBookDb, string backupBasePath,
         string outputDirectory)
     {
-        var smsDbFileInfo = manifestDb.GetFileInfoByRelativePath("Library/SMS/sms.db") ??
+        var smsDbFileInfo = manifestDb.GetFileInfo("HomeDomain", "Library/SMS/sms.db") ??
                             throw new Exception("Can't find sms.db in manifest");
 
         using var messagesDb = new MessagesDatabase(smsDbFileInfo.GetContentPath(backupBasePath));
@@ -78,8 +78,11 @@ public static partial class AppleMessagesExporter
                         createdAttachmentsDirectory = true;
                     }
 
-                    var fileInfo = manifestDb.GetFileInfoByRelativePath(attachment.FileName);
-                    if (fileInfo == null) continue; // can't find the file
+                    var fileInfo = manifestDb.GetFileInfo("MediaDomain", attachment.FileName);
+                    if (fileInfo == null)
+                    {
+                        continue; // can't find the file
+                    }
 
                     var contentPath = fileInfo.GetContentPath(backupBasePath);
 

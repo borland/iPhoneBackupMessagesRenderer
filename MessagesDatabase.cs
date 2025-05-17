@@ -20,10 +20,10 @@ public class Chat(MessagesDatabase database, int chatId, string? displayName, st
             ORDER BY h.id ASC
             LIMIT 1
             """;
-        cmd.Parameters.AddWithValue("$chatId", chatId);
+        cmd.Parameters.AddWithValue("$chatId", ChatId);
 
         var result = cmd.ExecuteScalar();
-        return result?.ToString() ?? $"chat_{chatId}";
+        return result?.ToString() ?? $"chat_{ChatId}";
     }
 
     public List<Message> GetMessages()
@@ -48,7 +48,7 @@ public class Chat(MessagesDatabase database, int chatId, string? displayName, st
             WHERE cmj.chat_id = $chatId
             ORDER BY m.date
             """;
-        cmd.Parameters.AddWithValue("$chatId", chatId);
+        cmd.Parameters.AddWithValue("$chatId", ChatId);
 
         using var reader = cmd.ExecuteReader();
         Message? lastMessageWithAttachments = null; // buffer to accumulate attachments if a message has more than one.
@@ -108,14 +108,9 @@ public record Message(long RowId, string Sender, string Text, DateTime Date, boo
 
 public record Attachment(long RowId, string FileName, string MimeType, string TransferName);
 
-public class MessagesDatabase : IDisposable
+public class MessagesDatabase(string smsDbFilePath) : IDisposable
 {
-    public readonly SqliteConnection Connection;
-
-    public MessagesDatabase(string smsDbFilePath)
-    {
-        Connection = SqliteHelper.OpenDatabaseReadOnly(smsDbFilePath);
-    }
+    public readonly SqliteConnection Connection = SqliteHelper.OpenDatabaseReadOnly(smsDbFilePath);
 
     public void Dispose()
     {

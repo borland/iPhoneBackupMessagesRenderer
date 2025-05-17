@@ -19,11 +19,12 @@ public static class Program
         var manifestDbPath = Path.Combine(backupBasePath, "Manifest.db");
         using var manifestDb = new ManifestDatabase(manifestDbPath);
 
-        var addressBookDbFileInfo = manifestDb.GetFileInfoByRelativePath("Library/AddressBook/AddressBook.sqlitedb") ??
+        var addressBookDbFileInfo = manifestDb.GetFileInfo("HomeDomain", "Library/AddressBook/AddressBook.sqlitedb") ??
                                     throw new Exception("Can't find AddressBook.sqlitedb in manifest");
         using var addressBookDb =
             new AddressBookDatabase(addressBookDbFileInfo.GetContentPath(backupBasePath), myName);
 
-        AppleMessagesExporter.Export(manifestDb, addressBookDb, backupBasePath, outputDirectory);
+        // AppleMessagesExporter.Export(manifestDb, addressBookDb, backupBasePath, Path.Combine(outputDirectory, "Messages"));
+        WhatsAppExporter.Export(manifestDb, addressBookDb, backupBasePath, Path.Combine(outputDirectory, "WhatsApp"));
     }
 }
