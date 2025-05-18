@@ -1,4 +1,3 @@
-﻿using iPhoneBackupMessagesRenderer.WhatsApp;
 ﻿using iPhoneBackupMessagesRenderer.AppleMessages;
 using iPhoneBackupMessagesRenderer.WhatsApp;
 
@@ -25,7 +24,7 @@ public static class Program
         using var addressBookDb =
             new AddressBookDatabase(addressBookDbFileInfo.GetContentPath(backupBasePath), myName);
 
-        // AppleMessagesExporter.Export(manifestDb, addressBookDb, backupBasePath, Path.Combine(outputDirectory, "Messages"));
+        AppleMessagesExporter.Export(manifestDb, addressBookDb, backupBasePath, Path.Combine(outputDirectory, "Messages"));
         WhatsAppExporter.Export(manifestDb, myName, backupBasePath, Path.Combine(outputDirectory, "WhatsApp"));
     }
 }

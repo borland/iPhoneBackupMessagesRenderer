@@ -15,18 +15,23 @@ public class ChatSession(
         var messages = new List<Message>();
 
         var cmd = database.Connection.CreateCommand();
+        // In the WhatsApp database, each row in ZWAMEDIAITEM has one row in the ZWAMESSAGE table, so we can simply LEFT JOIN and not worry about grouping
+        // or runs of attachments like we do for the Apple messages app.
         cmd.CommandText =
             """
             SELECT
-              Z_PK,
-              ZISFROMME,
-              ZMESSAGEDATE,
-              ZGROUPMEMBER,
-              ZMEDIAITEM,
-              ZTEXT,
-              ZMEDIASECTIONID
-            FROM ZWAMESSAGE
+              m.Z_PK,
+              m.ZISFROMME,
+              m.ZMESSAGEDATE,
+              m.ZGROUPMEMBER,
+              m.ZTEXT,
+              i.ZMEDIALOCALPATH,
+              i.ZTITLE,
+              i.ZVCARDSTRING
+            FROM ZWAMESSAGE m
+            LEFT JOIN ZWAMEDIAITEM i ON i.ZMESSAGE = m.Z_PK
             WHERE ZCHATSESSION = $sessionId
+            ORDER BY ZMESSAGEDATE ASC
             """;
         cmd.Parameters.AddWithValue("$sessionId", Id);
         
@@ -41,13 +46,14 @@ public class ChatSession(
             var isFromMe = iter.NextBool();
             var messageDate = Util.ConvertAppleTimestamp(iter.NextInt64()); // this is actually a floating point number, what are we supposed to do with that?
             var groupMember = iter.NextNullableInt64();
-            var isMediaItem = iter.NextNullableBool() == true;
             string? text = iter.NextNullableString();
-            string? mediaSectionId = iter.NextNullableString();
+            string? mediaLocalPath = iter.NextNullableString();
+            string? mediaTitle = iter.NextNullableString();
+            string? mediaMimeType = iter.NextNullableString(); // Yes the ZVCARDSTRING column contains the Mime type
 
-            if (isMediaItem && mediaSectionId != null)
+            if (mediaLocalPath is not null)
             {
-                messages.Add(new Message.Media(id, isFromMe, Id, groupMember, messageDate, mediaSectionId));
+                messages.Add(new Message.Media(id, isFromMe, Id, groupMember, messageDate, mediaTitle, mediaMimeType, mediaLocalPath));
             }
             else if (text != null)
             {
@@ -148,6 +154,8 @@ public abstract record Message(
         long SessionId,
         long? GroupMember,
         DateTime MessageDate,
-        string MediaSectionId // ZMEDIASECTIONID
+        string? Title, // ZTITLE from ZWAMEDIAITEM
+        string? MimeType, // ZVCARDSTRING from ZWAMEDIAITEM
+        string LocalPath // ZMEDIALOCALPATH from ZWAMEDIAITEM. Note this was the local path on the iPhone before the backup, not anything to do with your local PC
     ) : Message(Id, IsFromMe, SessionId, GroupMember, MessageDate);
 }
