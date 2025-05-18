@@ -56,10 +56,11 @@ public class AddressBookDatabase : IDisposable
 
         if (reader.Read()) // just read the first row, if there are multiple we have no way to rank them
         {
-            firstName = !reader.IsDBNull(0) ? reader.GetString(0) : null;
-            lastName = !reader.IsDBNull(1) ? reader.GetString(1) : null;
-            middleName = !reader.IsDBNull(2) ? reader.GetString(2) : null;
-            organization = !reader.IsDBNull(3) ? reader.GetString(3) : null;
+            var iter = new DbDataReaderIterator(reader);
+            firstName = iter.NextNullableString();
+            lastName = iter.NextNullableString();
+            middleName = iter.NextNullableString();
+            organization = iter.NextNullableString();
         }
 
         var guessedName = string.Join(" ",

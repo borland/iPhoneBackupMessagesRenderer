@@ -21,6 +21,7 @@ public class ChatSession(
               Z_PK,
               ZISFROMME,
               ZMESSAGEDATE,
+              ZGROUPMEMBER,
               ZMEDIAITEM,
               ZTEXT,
               ZMEDIASECTIONID
@@ -33,21 +34,24 @@ public class ChatSession(
         while (reader.Read())
         {
             if (reader.IsDBNull(0) || reader.IsDBNull(1) || reader.IsDBNull(2)) continue; // skip invalid rows; other columns are allowed to be null.
-            
-            var id = reader.GetInt64(0);
-            var isFromMe = reader.GetInt32(1) == 1;
-            var messageDate = Util.ConvertAppleTimestamp((long)reader.GetDouble(2)); // this is actually a floating point number, what are we supposed to do with that?
-            var isMediaItem = !reader.IsDBNull(3) && reader.GetInt32(3) == 1;
-            string? text = reader.IsDBNull(4) ? null : reader.GetString(4);
-            string? mediaSectionId = reader.IsDBNull(5) ? null : reader.GetString(5);
+
+            var iter = new DbDataReaderIterator(reader);
+
+            var id = iter.NextInt64();
+            var isFromMe = iter.NextBool();
+            var messageDate = Util.ConvertAppleTimestamp(iter.NextInt64()); // this is actually a floating point number, what are we supposed to do with that?
+            var groupMember = iter.NextNullableInt64();
+            var isMediaItem = iter.NextNullableBool() == true;
+            string? text = iter.NextNullableString();
+            string? mediaSectionId = iter.NextNullableString();
 
             if (isMediaItem && mediaSectionId != null)
             {
-                messages.Add(new Message.Media(id, isFromMe, Id, messageDate, mediaSectionId));
+                messages.Add(new Message.Media(id, isFromMe, Id, groupMember, messageDate, mediaSectionId));
             }
             else if (text != null)
             {
-                messages.Add(new Message.Text(id, isFromMe, Id, messageDate, text));
+                messages.Add(new Message.Text(id, isFromMe, Id, groupMember, messageDate, text));
             }
             // else it's not a media item and the text is null; skip it
         }
@@ -74,23 +78,56 @@ public class WhatsAppChatStorageDatabase(string smsDbFilePath) : IDisposable
         {
             if (reader.IsDBNull(0) || reader.IsDBNull(1)) continue; // skip any invalid rows
             
+            var iter = new DbDataReaderIterator(reader);
             chats.Add(new ChatSession(
                 this,
-                reader.GetInt64(0),
-                reader.GetString(1)
+                iter.NextInt64(),
+                iter.NextString()
             ));
         }
 
         return chats;
     }
+    
+    public List<GroupMember> GetGroupMembers()
+    {
+        var results = new List<GroupMember>();
+
+        var cmd = Connection.CreateCommand();
+        cmd.CommandText =
+            """
+            SELECT Z_PK, ZCONTACTNAME, ZMEMBERJID
+            FROM ZWAGROUPMEMBER
+            WHERE ZCONTACTNAME IS NOT NULL
+            AND ZCONTACTNAME <> ''
+            """;
+        using var reader = cmd.ExecuteReader();
+        while (reader.Read())
+        {
+            if (reader.IsDBNull(0) || reader.IsDBNull(1) || reader.IsDBNull(2)) continue; // skip invalid rows; other columns are allowed to be null.
+
+            var iter = new DbDataReaderIterator(reader);
+            results.Add(new GroupMember(
+                iter.NextInt64(),
+                iter.NextString(),
+                iter.NextString()));
+        }
+        return results;
+    }
 }
 
+//ZWAGROUPMEMBER table
+public record GroupMember(
+    long Id, // Z_PK
+    string ContactName, // ZCONTACTNAME
+    string MemberJid); // ZMEMBERJID
 
 // ZWAMESSSAGE table
 public abstract record Message(
     long Id, // PK
     bool IsFromMe, // ZISFROMME
     long SessionId, // ZCHATSESSION
+    long? GroupMember, // ZGROUPMEMBER
     DateTime MessageDate // ZMESSAGEDATE
     )
 {
@@ -99,16 +136,18 @@ public abstract record Message(
         long Id,
         bool IsFromMe,
         long SessionId,
+        long? GroupMember,
         DateTime MessageDate,
         string MessageText // ZTEXT
-    ) : Message(Id, IsFromMe, SessionId, MessageDate);
+    ) : Message(Id, IsFromMe, SessionId, GroupMember, MessageDate);
     
     // If the ZMEDIAITEM column not null then it's a media message
     public record Media(
         long Id,
         bool IsFromMe,
         long SessionId,
+        long? GroupMember,
         DateTime MessageDate,
         string MediaSectionId // ZMEDIASECTIONID
-    ) : Message(Id, IsFromMe, SessionId, MessageDate);
+    ) : Message(Id, IsFromMe, SessionId, GroupMember, MessageDate);
 }

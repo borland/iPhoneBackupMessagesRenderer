@@ -1,4 +1,6 @@
 ﻿using iPhoneBackupMessagesRenderer.WhatsApp;
+﻿using iPhoneBackupMessagesRenderer.AppleMessages;
+using iPhoneBackupMessagesRenderer.WhatsApp;
 
 namespace iPhoneBackupMessagesRenderer;
 

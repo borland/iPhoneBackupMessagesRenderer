@@ -55,17 +55,20 @@ public class Chat(MessagesDatabase database, int chatId, string? displayName, st
 
         while (reader.Read())
         {
-            long rowId = reader.GetInt64(0);
-            string text = reader.IsDBNull(1) ? "(no text)" : reader.GetString(1);
-            bool isFromMe = reader.GetInt32(2) == 1;
-            long rawDate = reader.GetInt64(3);
-            DateTime date = Util.ConvertAppleTimestamp(rawDate);
-            string sender = isFromMe ? "Me" : (reader.IsDBNull(4) ? "Unknown" : reader.GetString(4));
+            var iter = new DbDataReaderIterator(reader);
 
-            long attachmentRowId = reader.IsDBNull(5) ? 0 : reader.GetInt64(5);
-            string? attachmentFilename = reader.IsDBNull(6) ? null : reader.GetString(6);
-            string? attachmentMimeType = reader.IsDBNull(7) ? null : reader.GetString(7);
-            string? attachmentTransferName = reader.IsDBNull(8) ? null : reader.GetString(8);
+            long rowId = iter.NextInt64();
+            string text = iter.NextNullableString() ?? "(no text)";
+            bool isFromMe = iter.NextBool();
+            DateTime date = Util.ConvertAppleTimestamp(iter.NextInt64());
+
+            var handle = iter.NextNullableString();
+            string sender = isFromMe ? "Me" : handle ?? "Unknown";
+
+            long attachmentRowId = iter.NextNullableInt64() ?? 0;
+            string? attachmentFilename = iter.NextNullableString();
+            string? attachmentMimeType = iter.NextNullableString();
+            string? attachmentTransferName = iter.NextNullableString();
 
             if (attachmentFilename is not null && attachmentMimeType is not null && attachmentTransferName is not null)
             {
@@ -125,11 +128,12 @@ public class MessagesDatabase(string smsDbFilePath) : IDisposable
         using var reader = cmd.ExecuteReader();
         while (reader.Read())
         {
+            var iter = new DbDataReaderIterator(reader);
             chats.Add(new Chat(
                 this,
-                reader.GetInt32(0),
-                reader.IsDBNull(1) ? null : reader.GetString(1),
-                reader.GetString(2)
+                iter.NextInt32(),
+                iter.NextNullableString(),
+                iter.NextString()
             ));
         }
 

@@ -16,6 +16,8 @@ public static class WhatsAppExporter
         // 7c7fba66680ef796b916b067077cc246adacf01d
         using var chatStorageDb = new WhatsAppChatStorageDatabase(chatStorageDbFileInfo.GetContentPath(backupBasePath));
 
+        var groupMemberLookup = chatStorageDb.GetGroupMembers().ToDictionary(m => m.Id);
+
         Directory.CreateDirectory(outputDirectory);
         foreach (var chat in chatStorageDb.GetChatSessions())
         {
@@ -42,15 +44,18 @@ public static class WhatsAppExporter
 
             foreach (var message in messages.OfType<Message.Text>())
             {
-                var sender = message.IsFromMe ? myName : chatRecipient;
-                var timestamp = message.MessageDate; // TODO figure this bit out
+                var sender = message.IsFromMe
+                    ? myName
+                    : message.GroupMember is { } groupMemberId
+                        ? groupMemberLookup.TryGetValue(groupMemberId, out var gm) ? gm.ContactName : "Unknown Group Member"
+                        : chatRecipient; // else not a group member, must be the whole-chat recipient
 
                 // Lang=HTML
                 sb.AppendLine(
                     $"""
                       <div class="message {(message.IsFromMe ? "from-me" : "from-them")}">
                          <div>{System.Net.WebUtility.HtmlEncode(message.MessageText)}</div>
-                         <div class="subtitle">{System.Net.WebUtility.HtmlEncode(sender)} - {timestamp:G}</div>
+                         <div class="subtitle">{System.Net.WebUtility.HtmlEncode(sender)} - {message.MessageDate:G}</div>
                      """);
 
                 // TODO attachments and media if there are any
