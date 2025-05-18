@@ -88,7 +88,7 @@ public static class WhatsAppExporter
                         var outputMediaRelativePath = Path.Combine("attachments", safeBaseName,
                             $"{mediaMessage.Id}_{Path.GetFileName(mediaMessage.LocalPath)}");
                         var outputMediaAbsolutePath = Path.Combine(outputDirectory, outputMediaRelativePath);
-                    
+                        
                         MediaExportHelper.CopyMediaAndEmitHtml(
                             contentPath,
                             mediaMessage.MimeType,
@@ -98,7 +98,8 @@ public static class WhatsAppExporter
                         break;
                 }
                 
-                sb.AppendLine($"<div class=\"subtitle\">{System.Net.WebUtility.HtmlEncode(sender)} - {message.MessageDate:G}</div>");
+                var timestamp = message.MessageDate.ToLocalTime(); // database seems to store messages in UTC
+                sb.AppendLine($"<div class=\"subtitle\">{System.Net.WebUtility.HtmlEncode(sender)} - {timestamp:G}</div>");
 
                 sb.AppendLine("</div>");
             }
